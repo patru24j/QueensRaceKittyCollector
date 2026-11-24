@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Queens Race - Collect Cute Kitties!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unkempt:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: "Unkempt", cursive;
+    }
+
+    .unkempt-regular {
+      font-family: "Unkempt", cursive;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .unkempt-bold {
+      font-family: "Unkempt", cursive;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #7c7c7c;
+      background-image: url("7304a834-66fa-4d5d-8cfc-10118c2c99a1.gif");
+      background-repeat: repeat;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .pixel-art {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Sharp-Cornered Grid Container */
+    .board-wrapper {
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      background: #1e293b;
+      padding: 3px;
+      border-radius: 0;
+      box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+    }
+
+    .board-grid {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      overflow: hidden;
+      background-color: #ffffff;
+    }
+
+    /* Individual Sharp Cell */
+    .cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0;
+    }
+
+    /* Active Keyboard Cursor Box */
+    .cell.cursor-active::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border: 3px solid #0f172a;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    /* Conflict Diagonal Hatch Pattern */
+    .cell.conflict::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(239, 68, 68, 0.24),
+        rgba(239, 68, 68, 0.24) 5px,
+        rgba(239, 68, 68, 0.06) 5px,
+        rgba(239, 68, 68, 0.06) 10px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .cell.conflict-queen {
+      animation: pulseError 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulseError {
+      0%, 100% { box-shadow: inset 0 0 0 2.5px #dc2626; }
+      50% { box-shadow: inset 0 0 0 4px #ef4444; }
+    }
+
+    /* Crown Pop Animation */
+    @keyframes crownPop {
+      0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+      70% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .crown-icon {
+      width: 62%;
+      height: 62%;
+      z-index: 2;
+      animation: crownPop 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+    }
+
+    /* Gold Shine Glow for Round Prize Kitty */
+    @keyframes goldShinePulse {
+      0%, 100% {
+        filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.9)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.7));
+        transform: scale(1);
+      }
+      50% {
+        filter: drop-shadow(0 0 16px rgba(250, 204, 21, 1)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.95));
+        transform: scale(1.07);
+      }
+    }
+
+    .kitty-prize-glow {
+      animation: goldShinePulse 2s infinite ease-in-out;
+    }
+
+    /* Kitty Speech Bubble Pop-in & Fade */
+    .kitty-speech-bubble {
+      opacity: 0;
+      transform: translateY(4px) scale(0.92);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    .kitty-speech-bubble.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Won Kitties Cheer Jump & Golden Glow */
+    @keyframes kittyCheerJump {
+      0%, 100% { transform: translateY(0) scale(1); }
+      25% { transform: translateY(-10px) scale(1.12); }
+      50% { transform: translateY(0) scale(0.96); }
+      75% { transform: translateY(-6px) scale(1.06); }
+    }
+
+    .kitty-cheer-jump {
+      animation: kittyCheerJump 0.65s ease-in-out 3;
+    }
+
+    .tray-golden-glow {
+      box-shadow: 0 0 18px 4px rgba(250, 204, 21, 0.9), inset 0 0 14px rgba(250, 204, 21, 0.45) !important;
+      background-color: #fefce8 !important;
+      transition: box-shadow 0.25s ease, background-color 0.25s ease;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 60;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-100">
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Top Header Bar -->
+  <header class="w-full max-w-6xl mx-auto px-4 pt-5 pb-2 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-none bg-slate-900 text-amber-400 flex items-center justify-center shadow-sm">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 19h20v2H2v-2zm1.5-3L2 7l5.5 4L12 4l4.5 7L22 7l-1.5 9h-17z"/>
+        </svg>
+      </div>
+      <div class="bg-white/85 px-3 py-1 rounded-none">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-normal text-slate-900 leading-none">Queens Race - Collect Cute Kitties!</h1>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Live Timer -->
+      <div class="bg-white px-3 py-1.5 rounded-none shadow-xs flex items-center gap-1.5 text-base font-bold text-slate-800 tabular-nums">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polyline points="12 7 12 12 15 15"></polyline>
+        </svg>
+        <span id="timer-display">00:00</span>
+      </div>
+
+      <!-- New Race Button -->
+      <button id="btn-new" class="inline-flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-none bg-slate-900 text-white font-bold text-base hover:bg-slate-800 active:scale-[0.98] transition shadow-xs">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>New Race</span>
+      </button>
+
+      <!-- How to Play Button -->
+      <button id="btn-help" aria-label="How to Play" class="w-9 h-9 rounded-none bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900 transition shadow-xs flex items-center justify-center font-bold text-xl leading-none">
+        ?
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Two-Player Race Arena -->
+  <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-3 flex flex-col items-center justify-center gap-5">
+    <div class="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6">
+
+      <!-- Player 1 (Left Board - WASD + F) -->
+      <section class="flex flex-col items-center gap-2.5 w-full max-w-[400px]">
+        <div class="w-full flex items-center justify-between">
+          <span class="text-xl font-bold tracking-wide text-slate-900 bg-white/85 px-2.5 py-0.5 rounded-none">Player 1</span>
+          <span class="text-sm font-bold text-slate-900 bg-white/85 px-2.5 py-0.5 rounded-none">
+            Move: <strong>W A S D</strong> &bull; Queen: <strong>F</strong>
+          </span>
+        </div>
+        <div class="board-wrapper">
+          <div class="board-grid" id="board-grid-p1" role="grid" aria-label="Player 1 Queens Grid"></div>
+        </div>
+        <!-- Player 1 Avatar & Collected Kitties Tray (Pets on left, Avatar on right) -->
+        <div id="p1-tray" class="relative w-full bg-white px-3.5 py-2.5 rounded-none flex items-center gap-3 shadow-xs transition-all duration-300">
+          <!-- Player 1 Cheer Speech Bubble -->
+          <div id="p1-cheer-bubble" class="kitty-speech-bubble absolute -top-9 left-3 z-30 bg-amber-100 text-amber-950 font-bold text-sm px-2.5 py-1 rounded-none shadow-md">
+            we love you!
+            <span class="absolute top-full left-4 border-x-[6px] border-x-transparent border-t-[6px] border-t-amber-100"></span>
+          </div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="text-base font-bold text-slate-900 leading-none">Won Kitties</span>
+            <div id="p1-kitties" class="flex items-center flex-wrap gap-2 mt-1.5 min-h-[36px]">
+              <span class="text-sm text-slate-500">None yet</span>
+            </div>
+          </div>
+          <div class="w-px self-stretch bg-slate-300 shrink-0" aria-hidden="true"></div>
+          <div class="w-16 h-16 flex items-center justify-center shrink-0">
+            <img src="Auge copy.gif" alt="Player 1 Avatar" class="w-full h-full object-contain pixel-art" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Round Prize Kitty -->
+      <div class="flex flex-col items-center justify-center self-center py-2 lg:py-0 shrink-0 relative">
+        <span class="text-base font-bold text-amber-950 bg-amber-200/95 px-3 py-0.5 rounded-none mb-3 shadow-xs">
+          Round Prize
+        </span>
+        <div class="relative flex items-center justify-center">
+          <div id="center-prize-kitty" class="w-24 h-24 flex items-center justify-center kitty-prize-glow relative p-1">
+            <img id="center-kitty-img" src="cinni1 copy.png" alt="Round Prize Kitty" class="w-full h-full object-contain pixel-art" />
+          </div>
+          <!-- Periodic Prize Kitty Speech Bubble (Alternates Left/Right below kitty to stay clear of boards) -->
+          <div id="kitty-speech-bubble" class="kitty-speech-bubble absolute top-full mt-2.5 left-1/2 -translate-x-1/2 z-30 bg-white text-slate-900 font-bold text-sm px-2.5 py-1.5 rounded-none shadow-md max-w-[130px] text-center leading-tight">
+            <span id="kitty-speech-text">rescue me</span>
+            <!-- Upward-pointing tail -->
+            <span id="kitty-speech-tail" class="absolute bottom-full left-1/2 -translate-x-1/2 border-x-[6px] border-x-transparent border-b-[7px] border-b-white"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player 2 (Right Board - Arrow Keys + Enter) -->
+      <section class="flex flex-col items-center gap-2.5 w-full max-w-[400px]">
+        <div class="w-full flex items-center justify-between">
+          <span class="text-xl font-bold tracking-wide text-slate-900 bg-white/85 px-2.5 py-0.5 rounded-none">Player 2</span>
+          <span class="text-sm font-bold text-slate-900 bg-white/85 px-2.5 py-0.5 rounded-none">
+            Move: <strong>↑ ↓ ← →</strong> &bull; Queen: <strong>Enter</strong>
+          </span>
+        </div>
+        <div class="board-wrapper">
+          <div class="board-grid" id="board-grid-p2" role="grid" aria-label="Player 2 Queens Grid"></div>
+        </div>
+        <!-- Player 2 Avatar & Collected Kitties Tray -->
+        <div id="p2-tray" class="relative w-full bg-white px-3.5 py-2.5 rounded-none flex items-center gap-3 shadow-xs transition-all duration-300">
+          <!-- Player 2 Cheer Speech Bubble -->
+          <div id="p2-cheer-bubble" class="kitty-speech-bubble absolute -top-9 right-3 z-30 bg-amber-100 text-amber-950 font-bold text-sm px-2.5 py-1 rounded-none shadow-md">
+            we love you!
+            <span class="absolute top-full right-4 border-x-[6px] border-x-transparent border-t-[6px] border-t-amber-100"></span>
+          </div>
+          <div class="w-16 h-16 flex items-center justify-center shrink-0">
+            <img src="Clown (10) copy.gif" alt="Player 2 Avatar" class="w-full h-full object-contain pixel-art" />
+          </div>
+          <div class="w-px self-stretch bg-slate-300 shrink-0" aria-hidden="true"></div>
+          <div class="flex flex-col flex-1 min-w-0">
+            <span class="text-base font-bold text-slate-900 leading-none">Won Kitties</span>
+            <div id="p2-kitties" class="flex items-center flex-wrap gap-2 mt-1.5 min-h-[36px]">
+              <span class="text-sm text-slate-500">None yet</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Winner Celebration Modal -->
+  <div id="win-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-none max-w-sm w-full p-6 text-center shadow-2xl transform transition-all">
+      <!-- Won Kitty Prize Showcase -->
+      <div class="w-24 h-24 flex items-center justify-center mx-auto mb-3 kitty-prize-glow p-1">
+        <img id="win-kitty-img" src="cinni1 copy.png" alt="Won Prize Kitty" class="w-full h-full object-contain pixel-art" />
+      </div>
+      <h2 id="win-title" class="text-3xl font-bold text-slate-900">Player 1 Wins!</h2>
+      <p id="win-subtitle" class="text-lg font-bold text-slate-700 mt-1">They won her in 00:00!</p>
+      <div class="bg-slate-50 rounded-none p-4 my-4">
+        <span class="block text-sm text-slate-500 font-bold">Winning Time</span>
+        <span id="win-time" class="text-3xl font-bold text-slate-900 tabular-nums mt-0.5 block">00:00</span>
+      </div>
+      <button id="btn-play-again" class="w-full py-2.5 px-4 rounded-none bg-slate-900 text-white font-bold text-lg hover:bg-slate-800 transition shadow-sm">
+        Next Round
+      </button>
+    </div>
+  </div>
+
+  <!-- How to Play Modal -->
+  <div id="help-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-none max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold text-slate-900">How to Race</h2>
+        <button id="btn-close-help" class="p-1.5 rounded-none text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <ul class="space-y-3 text-base text-slate-700 leading-snug">
+        <li class="flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-none bg-amber-100 text-amber-800 font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <span>Place exactly <strong>one Queen</strong> in each <strong>row</strong>, <strong>column</strong>, and <strong>colored region</strong> on the 7×7 grid.</span>
+        </li>
+        <li class="flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-none bg-amber-100 text-amber-800 font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">2</span>
+          <span>Queens <strong>cannot touch</strong> each other, even diagonally.</span>
+        </li>
+        <li class="flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-none bg-amber-100 text-amber-800 font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">3</span>
+          <span><strong>Player 1 (Left):</strong> Move with <strong>W, A, S, D</strong> and press <strong>F</strong> to toggle a Queen.</span>
+        </li>
+        <li class="flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-none bg-amber-100 text-amber-800 font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">4</span>
+          <span><strong>Player 2 (Right):</strong> Move with <strong>Arrow Keys</strong> and press <strong>Enter</strong> to toggle a Queen. First to solve wins the round's kitty!</span>
+        </li>
+        <li class="flex items-start gap-2.5 pt-1 border-t border-slate-200">
+          <span class="px-1.5 h-6 rounded-none bg-amber-200 text-amber-900 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">P.S.</span>
+          <span>Press <strong>1</strong> (Player 1) or <strong>0</strong> (Player 2) anytime to make your won kitties jump for joy!</span>
+        </li>
+      </ul>
+      <button id="btn-got-it" class="w-full mt-6 py-2 px-4 rounded-none bg-slate-900 text-white font-bold text-lg hover:bg-slate-800 transition">
+        Got it
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const GRID_SIZE = 7;
+
+      const PALETTE_POOL = [
+        ["#776d5a", "#987d7c", "#a09cb0", "#a3b9c9"], // Muted Earth & Ash
+        ["#22577a", "#38a3a5", "#57cc99", "#80ed99"], // Ocean Teal & Mint
+        ["#d4e4bc", "#96acb7", "#36558f", "#40376e"], // Sage Mist & Deep Indigo
+        ["#75dbcd", "#c9dbba", "#dcdba8", "#f5cda7"], // Seafoam & Warm Peach
+        ["#60435f", "#d67ab1", "#e2a3c7", "#fdf7fa"]  // Plum & Orchid Pink
+      ];
+
+      let activePalette = PALETTE_POOL[0];
+
+      // Randomized Pool of Prize Kitties & Critters
+      const KITTY_POOL = [
+        "cat3 copy.gif",
+        "cinni1 copy.png",
+        "kitten1 copy.gif",
+        "kitten3 copy.gif",
+        "kitten4 copy.gif",
+        "kitten15 copy.gif",
+        "kittyjump copy.gif",
+        "tumblr_inline_p25mo3foq91ux8fd4_500 copy.gif",
+        "tumblr_lmzr6zJbwT1qg9aa7 copy.png",
+        "waitress copy.gif",
+        "1_leggy copy.png",
+        "3_cow copy.png",
+        "ani4 copy.gif",
+        "bfy22 copy.gif",
+        "i-38307 copy.gif",
+        "i-41619 copy.gif",
+        "i-49916 copy.gif",
+        "Untitled285_20241119174337 copy.PNG"
+      ];
+
+      const CROWN_SVG = `
+        <svg class="crown-icon text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 18h18v2H3v-2zm1.2-3.2L2.5 7.5l5.3 3.8L12 4.5l4.2 6.8 5.3-3.8-1.7 7.3H4.2z"/>
+        </svg>
+      `;
+
+      let regionMap = [];
+      let regionColorMap = [];
+      let currentRoundKitty = KITTY_POOL[0];
+      let p1WonKitties = [];
+      let p2WonKitties = [];
+
+      let players = {
+        1: { state: [], conflicts: [], cursor: { r: 3, c: 3 }, gridEl: document.getElementById("board-grid-p1"), kittiesEl: document.getElementById("p1-kitties"), trayEl: document.getElementById("p1-tray"), cheerBubbleEl: document.getElementById("p1-cheer-bubble"), cheerTimeout: null },
+        2: { state: [], conflicts: [], cursor: { r: 3, c: 3 }, gridEl: document.getElementById("board-grid-p2"), kittiesEl: document.getElementById("p2-kitties"), trayEl: document.getElementById("p2-tray"), cheerBubbleEl: document.getElementById("p2-cheer-bubble"), cheerTimeout: null }
+      };
+
+      let isGameWon = false;
+      let timerSeconds = 0;
+      let timerInterval = null;
+      let hasStartedTimer = false;
+      let speechLoopTimeout = null;
+      let speechHideTimeout = null;
+
+      const KITTY_DIALOGUES = [
+        "rescue me",
+        "i hope you win",
+        "you guys are taking forever!",
+        "im just a little guy!",
+        "(●´ω｀●)",
+        "wub wub wub wub",
+        "don't you have enough kitties?",
+        "i love this game!!!!"
+      ];
+      let lastDialogueIdx = -1;
+
+      const timerDisplay = document.getElementById("timer-display");
+      const winModal = document.getElementById("win-modal");
+      const helpModal = document.getElementById("help-modal");
+      const centerKittyImg = document.getElementById("center-kitty-img");
+      const kittySpeechBubble = document.getElementById("kitty-speech-bubble");
+      const kittySpeechText = document.getElementById("kitty-speech-text");
+      const kittySpeechTail = document.getElementById("kitty-speech-tail");
+      const winKittyImg = document.getElementById("win-kitty-img");
+      const winTitle = document.getElementById("win-title");
+      const winSubtitle = document.getElementById("win-subtitle");
+      const winTime = document.getElementById("win-time");
+      function pickRandomPalette() {
+        if (PALETTE_POOL.length === 1) return PALETTE_POOL[0];
+        let next = PALETTE_POOL[Math.floor(Math.random() * PALETTE_POOL.length)];
+        while (next === activePalette) {
+          next = PALETTE_POOL[Math.floor(Math.random() * PALETTE_POOL.length)];
+        }
+        return next;
+      }
+
+      function pickRandomKitty() {
+        if (KITTY_POOL.length === 1) return KITTY_POOL[0];
+        let next = KITTY_POOL[Math.floor(Math.random() * KITTY_POOL.length)];
+        while (next === currentRoundKitty) {
+          next = KITTY_POOL[Math.floor(Math.random() * KITTY_POOL.length)];
+        }
+        return next;
+      }
+
+      function renderWonKitties() {
+        [
+          { list: p1WonKitties, el: players[1].kittiesEl },
+          { list: p2WonKitties, el: players[2].kittiesEl }
+        ].forEach(({ list, el }) => {
+          el.innerHTML = "";
+          if (list.length === 0) {
+            el.innerHTML = `<span class="text-sm text-slate-500">None yet</span>`;
+            return;
+          }
+          list.forEach((kittySrc, idx) => {
+            const badge = document.createElement("div");
+            badge.className = "w-10 h-10 flex items-center justify-center";
+            badge.title = `Won Kitty #${idx + 1}`;
+            const img = document.createElement("img");
+            img.src = kittySrc;
+            img.alt = "Won Kitty";
+            img.className = "w-full h-full object-contain pixel-art";
+            badge.appendChild(img);
+            el.appendChild(badge);
+          });
+        });
+      }
+
+      // Shuffle utility
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      // Step 2: Generate non-touching N-Queens placement
+      function generateSolutionQueens(n) {
+        const cols = Array(n).fill(-1);
+        function backtrack(r) {
+          if (r === n) return true;
+          for (const c of shuffle([...Array(n).keys()])) {
+            let valid = true;
+            for (let prevR = 0; prevR < r; prevR++) {
+              const prevC = cols[prevR];
+              if (prevC === c || (Math.abs(prevR - r) <= 1 && Math.abs(prevC - c) <= 1)) {
+                valid = false;
+                break;
+              }
+            }
+            if (valid) {
+              cols[r] = c;
+              if (backtrack(r + 1)) return true;
+              cols[r] = -1;
+            }
+          }
+          return false;
+        }
+        backtrack(0);
+        return cols.map((c, r) => ({ r, c }));
+      }
+
+      // Step 3: Randomized Multi-Source Flood Fill
+      function generateRegions(n, queens) {
+        const grid = Array.from({ length: n }, () => Array(n).fill(-1));
+        const frontiers = queens.map((q, idx) => {
+          grid[q.r][q.c] = idx;
+          return [{ r: q.r, c: q.c }];
+        });
+        const sizes = Array(n).fill(1);
+        let remaining = n * n - n;
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        while (remaining > 0) {
+          const activeIds = [];
+          for (let i = 0; i < n; i++) {
+            if (frontiers[i].length > 0) activeIds.push(i);
+          }
+          if (activeIds.length === 0) return null;
+
+          // Prioritize regions with size < 2 so no trivial single-cell regions exist
+          const tiny = activeIds.filter(id => sizes[id] < 2);
+          const pool = tiny.length > 0 ? tiny : activeIds;
+          const regId = pool[Math.floor(Math.random() * pool.length)];
+
+          const fList = frontiers[regId];
+          const fIdx = Math.floor(Math.random() * fList.length);
+          const curr = fList[fIdx];
+
+          const neighbors = [];
+          for (const [dr, dc] of dirs) {
+            const nr = curr.r + dr;
+            const nc = curr.c + dc;
+            if (nr >= 0 && nr < n && nc >= 0 && nc < n && grid[nr][nc] === -1) {
+              neighbors.push({ r: nr, c: nc });
+            }
+          }
+
+          if (neighbors.length === 0) {
+            fList.splice(fIdx, 1);
+          } else {
+            const chosen = neighbors[Math.floor(Math.random() * neighbors.length)];
+            grid[chosen.r][chosen.c] = regId;
+            fList.push(chosen);
+            sizes[regId]++;
+            remaining--;
+          }
+        }
+        return grid;
+      }
+
+      // Step 4: Fast Bitmask Solver to Verify Unique Solution
+      function countSolutions(n, regions, limit = 2) {
+        const rowCells = Array.from({ length: n }, (_, r) =>
+          Array.from({ length: n }, (_, c) => ({ r, c, reg: regions[r][c] }))
+        );
+        let solutions = 0;
+
+        function solve(r, usedCols, usedRegs, prevCol) {
+          if (solutions >= limit) return;
+          if (r === n) {
+            solutions++;
+            return;
+          }
+          for (let c = 0; c < n; c++) {
+            if (usedCols & (1 << c)) continue;
+            if (prevCol !== -1 && Math.abs(c - prevCol) <= 1) continue;
+            const reg = rowCells[r][c].reg;
+            if (usedRegs & (1 << reg)) continue;
+            solve(r + 1, usedCols | (1 << c), usedRegs | (1 << reg), c);
+          }
+        }
+
+        solve(0, 0, 0, -1);
+        return solutions;
+      }
+
+      // Graph coloring for distinct adjacent region colors
+      function assignRegionColors(n, regions) {
+        const adj = Array.from({ length: n }, () => new Set());
+        for (let r = 0; r < n; r++) {
+          for (let c = 0; c < n; c++) {
+            const id = regions[r][c];
+            if (r + 1 < n && regions[r + 1][c] !== id) {
+              adj[id].add(regions[r + 1][c]);
+              adj[regions[r + 1][c]].add(id);
+            }
+            if (c + 1 < n && regions[r][c + 1] !== id) {
+              adj[id].add(regions[r][c + 1]);
+              adj[regions[r][c + 1]].add(id);
+            }
+          }
+        }
+        const colors = Array(n).fill(-1);
+        const order = [...Array(n).keys()].sort((a, b) => adj[b].size - adj[a].size);
+        for (const id of order) {
+          const used = new Set([...adj[id]].map(nb => colors[nb]).filter(c => c !== -1));
+          for (let c = 0; c < activePalette.length; c++) {
+            if (!used.has(c)) {
+              colors[id] = c;
+              break;
+            }
+          }
+          if (colors[id] === -1) colors[id] = id % activePalette.length;
+        }
+        return colors;
+      }
+
+      function generateUniquePuzzle() {
+        for (let attempt = 0; attempt < 400; attempt++) {
+          const queens = generateSolutionQueens(GRID_SIZE);
+          const regions = generateRegions(GRID_SIZE, queens);
+          if (!regions) continue;
+          if (countSolutions(GRID_SIZE, regions, 2) === 1) {
+            return {
+              regions,
+              colorMap: assignRegionColors(GRID_SIZE, regions)
+            };
+          }
+        }
+        // Fallback deterministic valid layout
+        const fallbackQueens = generateSolutionQueens(GRID_SIZE);
+        let fallbackRegions = null;
+        while (!fallbackRegions) {
+          fallbackRegions = generateRegions(GRID_SIZE, fallbackQueens);
+        }
+        return {
+          regions: fallbackRegions,
+          colorMap: assignRegionColors(GRID_SIZE, fallbackRegions)
+        };
+      }
+
+      // Timer controls
+      function formatTime(sec) {
+        const m = String(Math.floor(sec / 60)).padStart(2, "0");
+        const s = String(sec % 60).padStart(2, "0");
+        return `${m}:${s}`;
+      }
+
+      function startTimerIfNeeded() {
+        if (hasStartedTimer || isGameWon) return;
+        hasStartedTimer = true;
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          timerDisplay.textContent = formatTime(timerSeconds);
+        }, 1000);
+      }
+
+      function stopTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      // Periodic Prize Kitty Dialogue Loop
+      function stopKittyDialogue() {
+        clearTimeout(speechLoopTimeout);
+        clearTimeout(speechHideTimeout);
+        speechLoopTimeout = null;
+        speechHideTimeout = null;
+        kittySpeechBubble.classList.remove("visible");
+      }
+
+      function scheduleNextKittyDialogue() {
+        clearTimeout(speechLoopTimeout);
+        if (isGameWon) return;
+
+        // Wait 8 to 15 seconds between lines
+        const delayMs = 8000 + Math.floor(Math.random() * 7000);
+        speechLoopTimeout = setTimeout(() => {
+          if (isGameWon) return;
+
+          // Unlock "taking forever" after 25s; keep other lines available right away
+          let poolIndices = KITTY_DIALOGUES.map((_, i) => i).filter(i => i !== 2 || timerSeconds >= 25);
+          const filtered = poolIndices.filter(i => i !== lastDialogueIdx);
+          const chosenIdx = filtered[Math.floor(Math.random() * filtered.length)];
+          lastDialogueIdx = chosenIdx;
+
+          // Randomly alternate between leaning left or right beneath the kitty so it never overlaps the boards
+          const leanLeft = Math.random() < 0.5;
+          if (leanLeft) {
+            kittySpeechBubble.style.left = "auto";
+            kittySpeechBubble.style.right = "15%";
+            kittySpeechBubble.style.transform = "";
+            kittySpeechTail.style.left = "auto";
+            kittySpeechTail.style.right = "16px";
+            kittySpeechTail.style.transform = "none";
+          } else {
+            kittySpeechBubble.style.right = "auto";
+            kittySpeechBubble.style.left = "15%";
+            kittySpeechBubble.style.transform = "";
+            kittySpeechTail.style.right = "auto";
+            kittySpeechTail.style.left = "16px";
+            kittySpeechTail.style.transform = "none";
+          }
+
+          kittySpeechText.textContent = KITTY_DIALOGUES[chosenIdx];
+          kittySpeechBubble.classList.add("visible");
+
+          // Hide after 5 seconds
+          clearTimeout(speechHideTimeout);
+          speechHideTimeout = setTimeout(() => {
+            kittySpeechBubble.classList.remove("visible");
+            scheduleNextKittyDialogue();
+          }, 5000);
+        }, delayMs);
+      }
+
+      // Validate a player's board & detect rule conflicts
+      function evaluatePlayerBoard(playerNum) {
+        const p = players[playerNum];
+        const conflicts = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
+        const queens = [];
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (p.state[r][c] === 1) {
+              queens.push({ r, c, reg: regionMap[r][c] });
+            }
+          }
+        }
+
+        let hasConflict = false;
+        for (let i = 0; i < queens.length; i++) {
+          for (let j = i + 1; j < queens.length; j++) {
+            const q1 = queens[i];
+            const q2 = queens[j];
+            const sameRow = q1.r === q2.r;
+            const sameCol = q1.c === q2.c;
+            const sameReg = q1.reg === q2.reg;
+            const touching = Math.abs(q1.r - q2.r) <= 1 && Math.abs(q1.c - q2.c) <= 1;
+
+            if (sameRow || sameCol || sameReg || touching) {
+              hasConflict = true;
+              conflicts[q1.r][q1.c] = true;
+              conflicts[q2.r][q2.c] = true;
+            }
+          }
+        }
+
+        p.conflicts = conflicts;
+
+        if (!hasConflict && queens.length === GRID_SIZE && !isGameWon) {
+          isGameWon = true;
+          stopTimer();
+          stopKittyDialogue();
+          const elapsed = formatTime(timerSeconds);
+          if (playerNum === 1) {
+            p1WonKitties.push(currentRoundKitty);
+          } else {
+            p2WonKitties.push(currentRoundKitty);
+          }
+          renderWonKitties();
+
+          winTitle.textContent = `Player ${playerNum} Wins!`;
+          winSubtitle.textContent = `Player ${playerNum} won her in ${elapsed}!`;
+          winTime.textContent = elapsed;
+          winKittyImg.src = currentRoundKitty;
+          setTimeout(() => {
+            winModal.classList.remove("hidden");
+            winModal.classList.add("flex");
+            launchConfetti();
+          }, 220);
+        }
+      }
+
+      function renderPlayerBoard(playerNum) {
+        const p = players[playerNum];
+        const gridEl = p.gridEl;
+        gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, minmax(0, 1fr))`;
+        gridEl.style.gridTemplateRows = `repeat(${GRID_SIZE}, minmax(0, 1fr))`;
+        gridEl.innerHTML = "";
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            const regId = regionMap[r][c];
+            cell.style.backgroundColor = activePalette[regionColorMap[regId]];
+
+            // Region boundary borders
+            const topSame = r > 0 && regionMap[r - 1][c] === regId;
+            const bottomSame = r < GRID_SIZE - 1 && regionMap[r + 1][c] === regId;
+            const leftSame = c > 0 && regionMap[r][c - 1] === regId;
+            const rightSame = c < GRID_SIZE - 1 && regionMap[r][c + 1] === regId;
+
+            cell.style.borderTop = topSame ? "1px solid rgba(15, 23, 42, 0.16)" : "2.5px solid #0f172a";
+            cell.style.borderBottom = bottomSame ? "1px solid rgba(15, 23, 42, 0.16)" : "2.5px solid #0f172a";
+            cell.style.borderLeft = leftSame ? "1px solid rgba(15, 23, 42, 0.16)" : "2.5px solid #0f172a";
+            cell.style.borderRight = rightSame ? "1px solid rgba(15, 23, 42, 0.16)" : "2.5px solid #0f172a";
+
+            if (p.conflicts[r][c]) {
+              cell.classList.add("conflict", "conflict-queen");
+            }
+
+            if (!isGameWon && p.cursor.r === r && p.cursor.c === c) {
+              cell.classList.add("cursor-active");
+            }
+
+            if (p.state[r][c] === 1) {
+              cell.innerHTML = CROWN_SVG;
+            }
+
+            gridEl.appendChild(cell);
+          }
+        }
+      }
+
+      function toggleQueen(playerNum) {
+        if (isGameWon) return;
+        startTimerIfNeeded();
+        const p = players[playerNum];
+        const { r, c } = p.cursor;
+        p.state[r][c] = p.state[r][c] === 1 ? 0 : 1;
+        evaluatePlayerBoard(playerNum);
+        renderPlayerBoard(playerNum);
+      }
+
+      function moveCursor(playerNum, dr, dc) {
+        if (isGameWon) return;
+        const p = players[playerNum];
+        p.cursor.r = (p.cursor.r + dr + GRID_SIZE) % GRID_SIZE;
+        p.cursor.c = (p.cursor.c + dc + GRID_SIZE) % GRID_SIZE;
+        renderPlayerBoard(playerNum);
+      }
+
+      function triggerKittyCheer(playerNum) {
+        const p = players[playerNum];
+        clearTimeout(p.cheerTimeout);
+
+        // Glow the Won Kitties tray golden for 2 seconds
+        p.trayEl.classList.remove("tray-golden-glow");
+        void p.trayEl.offsetWidth;
+        p.trayEl.classList.add("tray-golden-glow");
+
+        // Pop up the "we love you!" speech bubble above the tray
+        if (p.cheerBubbleEl) {
+          p.cheerBubbleEl.classList.add("visible");
+        }
+
+        // Make every kitty badge in the tray jump with a slight wave stagger
+        const badges = p.kittiesEl.querySelectorAll("div");
+        badges.forEach((badge, idx) => {
+          badge.classList.remove("kitty-cheer-jump");
+          void badge.offsetWidth;
+          badge.style.animationDelay = `${idx * 65}ms`;
+          badge.classList.add("kitty-cheer-jump");
+        });
+
+        p.cheerTimeout = setTimeout(() => {
+          p.trayEl.classList.remove("tray-golden-glow");
+          if (p.cheerBubbleEl) {
+            p.cheerBubbleEl.classList.remove("visible");
+          }
+          badges.forEach((badge) => {
+            badge.classList.remove("kitty-cheer-jump");
+            badge.style.animationDelay = "";
+          });
+        }, 2000);
+      }
+
+      // Keyboard Controls:
+      // Player 1 (Left): W, A, S, D to move, F to toggle Queen
+      // Player 2 (Right): Arrow Keys to move, Enter to toggle Queen
+      window.addEventListener("keydown", (e) => {
+        if (!helpModal.classList.contains("hidden")) {
+          if (e.key === "Escape") {
+            helpModal.classList.add("hidden");
+            helpModal.classList.remove("flex");
+          }
+          return;
+        }
+        if (!winModal.classList.contains("hidden")) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            initNewRace();
+          }
+          return;
+        }
+
+        const key = e.key.toLowerCase();
+
+        // Player 1 Controls (WASD + F)
+        if (key === "w") {
+          e.preventDefault();
+          moveCursor(1, -1, 0);
+        } else if (key === "s") {
+          e.preventDefault();
+          moveCursor(1, 1, 0);
+        } else if (key === "a") {
+          e.preventDefault();
+          moveCursor(1, 0, -1);
+        } else if (key === "d") {
+          e.preventDefault();
+          moveCursor(1, 0, 1);
+        } else if (key === "f") {
+          e.preventDefault();
+          toggleQueen(1);
+        } else if (e.key === "1") {
+          e.preventDefault();
+          triggerKittyCheer(1);
+        }
+
+        // Player 2 Controls (Arrow Keys + Enter)
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          moveCursor(2, -1, 0);
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          moveCursor(2, 1, 0);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          moveCursor(2, 0, -1);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          moveCursor(2, 0, 1);
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          toggleQueen(2);
+        } else if (e.key === "0") {
+          e.preventDefault();
+          triggerKittyCheer(2);
+        }
+      });
+
+      function initNewRace() {
+        stopTimer();
+        stopKittyDialogue();
+        timerSeconds = 0;
+        hasStartedTimer = false;
+        isGameWon = false;
+        lastDialogueIdx = -1;
+        timerDisplay.textContent = "00:00";
+
+        winModal.classList.add("hidden");
+        winModal.classList.remove("flex");
+
+        activePalette = pickRandomPalette();
+        currentRoundKitty = pickRandomKitty();
+        centerKittyImg.src = currentRoundKitty;
+
+        const puzzle = generateUniquePuzzle();
+        regionMap = puzzle.regions;
+        regionColorMap = puzzle.colorMap;
+
+        [1, 2].forEach((num) => {
+          players[num].state = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+          players[num].conflicts = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
+          players[num].cursor = { r: 3, c: 3 };
+          renderPlayerBoard(num);
+        });
+
+        scheduleNextKittyDialogue();
+      }
+
+      // Simple celebratory confetti burst
+      function launchConfetti() {
+        const canvas = document.getElementById("confetti-canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const pieces = Array.from({ length: 110 }, () => ({
+          x: Math.random() * canvas.width,
+          y: -20 - Math.random() * canvas.height * 0.4,
+          w: 7 + Math.random() * 6,
+          h: 10 + Math.random() * 8,
+          color: activePalette[Math.floor(Math.random() * activePalette.length)],
+          vx: (Math.random() - 0.5) * 4,
+          vy: 3 + Math.random() * 4,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.15
+        }));
+
+        let frame = 0;
+        function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          pieces.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rot += p.vrot;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
+          });
+          frame++;
+          if (frame < 160) {
+            requestAnimationFrame(animate);
+          } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+        animate();
+      }
+
+      // Modal & Button Listeners
+      document.getElementById("btn-new").addEventListener("click", initNewRace);
+      document.getElementById("btn-play-again").addEventListener("click", initNewRace);
+      document.getElementById("btn-help").addEventListener("click", () => {
+        helpModal.classList.remove("hidden");
+        helpModal.classList.add("flex");
+      });
+      document.getElementById("btn-close-help").addEventListener("click", () => {
+        helpModal.classList.add("hidden");
+        helpModal.classList.remove("flex");
+      });
+      document.getElementById("btn-got-it").addEventListener("click", () => {
+        helpModal.classList.add("hidden");
+        helpModal.classList.remove("flex");
+      });
+
+      window.addEventListener("load", () => {
+        renderWonKitties();
+        initNewRace();
+      });
+    })();
+  </script>
+</body>
+</html>
